@@ -374,7 +374,7 @@ public class DartThrower {
 					Decision buyOrSell = scanStock(myConnection, symbol);
 					
 					//All this does is buys the stock by subracting funds from balancesheet and updating the inventory
-					if(buyOrSell.equals(Decision.BUY)) {
+					if(buyOrSell == Decision.BUY) {
 						
 						double balance = 0;
 						double shareprice = 0;
