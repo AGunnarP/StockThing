@@ -14,7 +14,7 @@ import java.sql.SQLException;
 public class DartThrower {
 	public static void main(String args[]) {
 		Connection myConnection=null;
-		String Database = "jdbc:mysql://localhost:3306/babyanthony";
+		String Database = "jdbc:mysql://localhost:3306/babyanthony?useLegacyDatetimeCode=false&serverTimezone=America/Los_Angeles";
 		String user="root";
 		String password="Password13";
 		try {
@@ -32,9 +32,13 @@ public class DartThrower {
 			/*	for(int j=0;j<169;j++) {
 					stmt.executeUpdate("INSERT INTO stockvalues (hour,symbol,stockvalue) VALUES ("+j+",'nvda',"+j*(Math.round(Math.random()*11)+1)+");");
 				}*/
+                while(true){
 				DartThrower.scanInventory(myConnection);
 				DartThrower.scanMarket(myConnection);
 				DartThrower.getPERatio("NVDA", myConnection);
+                Thread.sleep(3600);//bot sleeps for an hour
+                
+                }
 		} catch(SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -114,11 +118,10 @@ public class DartThrower {
 		double stockvalue=0;
 		try {
 			stmt=myConnection.createStatement();
-			stmt.executeUpdate("CREATE TEMPORARY TABLE babyanthony.tempinventory( select ROW_NUMBER() OVER( ORDER BY SYMBOL) AS rownum, symbol, shares FROM inventory);");
 			String symbolcheck=null;
 			int i=1;
 			while(true) {
-				ResultSet rs=stmt.executeQuery("SELECT symbol,shares FROM babyanthony.tempinventory WHERE rownum="+i+";");
+				ResultSet rs=stmt.executeQuery("SELECT symbol,shares FROM inventory");
 				while(rs.next()) {
 					symbol= rs.getString("symbol");
 					shares= rs.getInt("shares");
@@ -155,7 +158,6 @@ public class DartThrower {
 				i++;
 				symbolcheck=symbol;
 				}
-			stmt.executeUpdate("DROP TABLE babyanthony.tempinventory;");
 		}catch(SQLException e) {
 			e.printStackTrace();
 		}finally {
@@ -210,10 +212,8 @@ public class DartThrower {
 		java.sql.Statement stmt=null;
 		try {
 			stmt=myConnection.createStatement();
-			stmt.executeUpdate("CREATE TEMPORARY TABLE babyanthony.tempinventory( select ROW_NUMBER() OVER( ORDER BY SYMBOL) AS rownum, symbol, shares FROM inventory);");
-			stmt.executeUpdate("CREATE TEMPORARY TABLE babyanthony.tempstocks( select ROW_NUMBER() OVER( ORDER BY SYMBOL) AS rownum, symbol, stockindex FROM stocks);");
 			for(int i=0;i<100;i++) {
-				ResultSet rs= stmt.executeQuery("SELECT symbol FROM babyanthony.tempinventory WHERE rownum="+i+";");
+				ResultSet rs= stmt.executeQuery("SELECT symbol FROM babyanthony.inventory;");
 				while(rs.next()) {
 					inventory[i]= rs.getString("symbol");
 				}
@@ -223,7 +223,7 @@ public class DartThrower {
 			String symbolcheck=null;
 			int i=1;
 			while(true) {
-				ResultSet rs=stmt.executeQuery("SELECT symbol FROM babyanthony.tempstocks WHERE rownum="+i+";");
+				ResultSet rs=stmt.executeQuery("SELECT symbol FROM babyanthony.stocks WHERE StockID="+i+";");
 				while(rs.next()) {
 					symbol=rs.getString("symbol");
 				}
@@ -268,8 +268,6 @@ public class DartThrower {
 				symbolcheck=symbol;
 				i++;
 			}
-			stmt.executeUpdate("DROP TABLE babyanthony.tempstocks;");
-			stmt.executeUpdate("DROP TABLE babyanthony.tempinventory;");
 		}catch(SQLException e){
 			e.printStackTrace();
 		}finally {
