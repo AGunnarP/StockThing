@@ -8,66 +8,43 @@ import babyanthony.me.stockthing.math.StatMath;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+
 import java.net.URL;
 import java.net.URLConnection;
+
 import java.sql.*;
 
 public class DartThrower {
 	
-	//Driver and database strings
-	static final String driver = "com.mysql.cj.jdbc.Driver";
-	static final String database = "jdbc:mysql://localhost/babyanthony";
+	//Database object
+	final static Database database = new Database();
 	
-	//Database credentials
-	static final String user = "root"; 
-	static final String password = "Password13";
+	public static Database getDatabaseInstance() {
+		return database;
+	}
 	
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		
-		Connection myConnection = null;
-			
-		try {
-			
-			//Instantiate Driver Object
-			Class.forName(driver).newInstance();
-			
-			//Create Connection Object using credentials
-			myConnection = DriverManager.getConnection(database, user, password);
-			
-			System.out.println("Connection Established!");
-			
-		} catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			e.printStackTrace();
-			return;
-		}
+		database.createConnection();
 		
-		//Scans inventory to sell stock.
-		scanInventory(myConnection);
+		scanInventory();
+		scanMarket();
 		
-		//Scans website to buy stock.
-		scanMarket(myConnection);
-		
-		//Attempt to close the connection
-		try {
-			myConnection.close();
-		}catch(SQLException e) {
-			e.printStackTrace();
-		}
+		database.closeConnection();
 		
 		return;
 	}
 	
 	
-	
-	public static void updateStockValues(String symbol, Connection myConnection) {// Updates stock price on the database with info from yahoo finance.
+	// Updates stock price on the database with info from yahoo finance.
+	public static void updateStockValues(String symbol) {
 		
-		//Will be initialized
 		Statement stmt = null;
 		
 		try {
 			
 			//Initialized Statement
-			stmt = myConnection.createStatement();
+			stmt = database.createStatement();
 			
 			// Used to store html output to eventually obtain stock values from website.
 			String lines[] = new String[100];
@@ -156,7 +133,7 @@ public class DartThrower {
 
 	
 	
-	public static void scanInventory(Connection myConnection){
+	public static void scanInventory(){
 		
 		//Will initialize later
 		Statement stmt = null;
@@ -164,7 +141,7 @@ public class DartThrower {
 		try {
 			
 			//Initialized statement
-			stmt = myConnection.createStatement();
+			stmt = database.createStatement();
 			
 			//Creates temporary table to create a table with a bunch of row numbers because I didn't know what AUTO_INCREMENT was at the time :embarassed:
 			stmt.executeUpdate("CREATE TEMPORARY TABLE babyanthony.tempinventory( select ROW_NUMBER() OVER( ORDER BY SYMBOL) "
@@ -203,7 +180,7 @@ public class DartThrower {
 				}
 				
 				//Calls scanstock function which determines whether stock is worthy to buy or sell.
-				Decision decision = scanStock(myConnection, symbol);
+				Decision decision = scanStock(symbol);
 				
 				//All this does is sell the stock and update balance.
 				if(decision == Decision.SELL) {
@@ -246,13 +223,13 @@ public class DartThrower {
 		
 
 	
-	public static Decision scanStock(Connection myConnection, String symbol) {
+	public static Decision scanStock(String symbol) {
 		
 		//Will be initialized
 		Statement stmt = null;
 		
 		//This is where update stock values function is called to limit the amount of times it needs to be called.
-		updateStockValues(symbol, myConnection);
+		updateStockValues(symbol);
 		
 		//Enum variable that will determine whether to buy or sell
 		Decision buyOrSell = null;
@@ -265,7 +242,7 @@ public class DartThrower {
 		try {
 			
 			//Initialized Statement
-			stmt = myConnection.createStatement();
+			stmt = database.createStatement();
 			
 				for(int j = 0; j < data.length; j++) {
 					
@@ -311,7 +288,7 @@ public class DartThrower {
 	
 	
 	
-	public static void scanMarket(Connection myConnection){//Same stuff as scan inventory but using stocks table to find the stocks on the market.
+	public static void scanMarket(){//Same stuff as scan inventory but using stocks table to find the stocks on the market.
 		
 		//Will be initialized
 		Statement stmt = null;
@@ -321,7 +298,7 @@ public class DartThrower {
 		try {
 			
 			//Initialized Statement
-			stmt = myConnection.createStatement();
+			stmt = database.createStatement();
 			
 			stmt.executeUpdate("CREATE TEMPORARY TABLE babyanthony.tempinventory( select ROW_NUMBER() OVER( ORDER BY SYMBOL) "
 					+ "AS rownum, symbol, shares FROM inventory);");
@@ -373,7 +350,7 @@ public class DartThrower {
 				if(bool) {
 					
 					//Decision variable
-					Decision buyOrSell = scanStock(myConnection, symbol);
+					Decision buyOrSell = scanStock(symbol);
 					
 					//All this does is buys the stock by subracting funds from balancesheet and updating the inventory
 					if(buyOrSell == Decision.BUY) {
@@ -436,7 +413,7 @@ public class DartThrower {
 	
 	
 	//Code is not complete, never called. It is supposed to give an evaluation on your inventory.
-	public static String getEvaluation(Connection myConnection){
+	public String getEvaluation(Connection myConnection){
 		java.sql.Statement stmt=null;
 		String symbolcheck=null;
 		String total=null;
